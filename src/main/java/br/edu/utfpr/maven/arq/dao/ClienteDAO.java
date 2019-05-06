@@ -37,24 +37,28 @@ public class ClienteDAO {
         }
     }
 
-    public void inserir(ClienteDTO cliente) {
+    public boolean inserir(ClienteDTO cliente) {
         String sql = "insert into cliente (nome, idade, telefone, limiteCredito, id_pais)"
                 + "values (?, ?, ?, ?, ?)";
 
         try (PreparedStatement ps = DriverManager.getConnection(URL).prepareStatement(sql)) {
 
             ps.setString(1, cliente.getNome());
-            ps.setInt(3, cliente.getIdade());
-            ps.setString(2, cliente.getTelefone());
+            ps.setInt(2, cliente.getIdade());
+            ps.setString(3, cliente.getTelefone());
             ps.setDouble(4, cliente.getLimiteCredito());
             ps.setInt(5, cliente.getPais().getId());
 
-            ps.executeUpdate();
+            int rows = ps.executeUpdate();
+            if (rows > 0)
+                return true;
 
             log.info("cliente inserido");
         } catch (SQLException e) {
-
+            System.out.println("Error: " + 
+                    e.getMessage());
         }
+        return false;
     }
 
     public void alterar(ClienteDTO cliente) {
@@ -91,8 +95,7 @@ public class ClienteDAO {
     }
 
     public List<ClienteDTO> listarTodos() {
-        String sql = "select * from cliente join pais"
-                + " on cliente.id_pais = pais.id";
+        String sql = "select * from cliente";
 
         List<ClienteDTO> clientes = new ArrayList<>();
 
@@ -101,28 +104,22 @@ public class ClienteDAO {
             ResultSet rs = st.executeQuery(sql);
 
             while (rs.next()) {
-                clientes.add(ClienteDTO.builder()
-                        .id(rs.getInt("cliente.id"))
-                        .nome(rs.getString("cliente.nome"))
-                        .idade(rs.getInt("cliente.idade"))
-                        .telefone(rs.getString("cliente.telefone"))
-                        .limiteCredito(rs.getDouble("cliente.limiteCredito"))
-                        .pais(PaisDTO.builder()
-                                .id(rs.getInt("pais.id"))
-                                .nome(rs.getString("pais.nome"))
-                                .sigla(rs.getString("pais.sigla"))
-                                .codigoTelefone(rs.getInt("pais.codigoTelefone"))
-                                .build())
-                        .build());
+                ClienteDTO cliente = ClienteDTO.builder()
+                        .id(rs.getInt("id"))
+                        .nome(rs.getString("nome"))
+                        .idade(rs.getInt("idade"))
+                        .telefone(rs.getString("telefone"))
+                        .limiteCredito(rs.getDouble("limiteCredito"))
+                        .pais(PaisDTO.builder().id(rs.getInt("id_pais")).build())
+                        .build();
+                clientes.add(cliente);
             }
-
-            return clientes;
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
         log.info("sem registo de clientes");
-        return null;
+        return clientes;
     }
 
     public ClienteDTO clientePorId(int id) {
